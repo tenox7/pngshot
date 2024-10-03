@@ -21,14 +21,12 @@ int main(int argc, char *argv[])
     char *filename;
     int x, y;
 
-    /* Check if filename is provided */
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <output_filename.png>\n", argv[0]);
         return 1;
     }
     filename = argv[1];
 
-    /* Create a DC for the entire screen */
     hdcScreen = CreateDC("DISPLAY", NULL, NULL, NULL);
     hdcMemDC = CreateCompatibleDC(hdcScreen);
 
@@ -40,7 +38,6 @@ int main(int argc, char *argv[])
     width = GetDeviceCaps(hdcScreen, HORZRES);
     height = GetDeviceCaps(hdcScreen, VERTRES);
 
-    /* Create a compatible bitmap for hdcScreen */
     hbmScreen = CreateCompatibleBitmap(hdcScreen, width, height);
     if (!hbmScreen) {
         fprintf(stderr, "Failed to create compatible bitmap\n");
@@ -49,10 +46,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /* Select the bitmap into the compatible DC */
     SelectObject(hdcMemDC, hbmScreen);
 
-    /* Bit block transfer into our compatible DC */
     if (!BitBlt(hdcMemDC, 0, 0, width, height, hdcScreen, 0, 0, SRCCOPY)) {
         fprintf(stderr, "BitBlt failed\n");
         DeleteObject(hbmScreen);
@@ -61,7 +56,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /* Get the BITMAP from the HBITMAP */
     GetObject(hbmScreen, sizeof(BITMAP), &bmpScreen);
 
     bi.biSize = sizeof(BITMAPINFOHEADER);
@@ -78,20 +72,14 @@ int main(int argc, char *argv[])
 
     dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
 
-    /* Starting with 32-bit Windows, GlobalAlloc and LocalAlloc are implemented as wrapper functions that 
-       call HeapAlloc using a handle to the process's default heap. So instead of using GlobalAlloc, 
-       we'll use HeapAlloc. */
     hDIB = GlobalAlloc(GHND, dwBmpSize);
     lpbitmap = (char *)GlobalLock(hDIB);
 
-    /* Gets the "bits" from the bitmap and copies them into a buffer 
-       which is pointed to by lpbitmap. */
     GetDIBits(hdcScreen, hbmScreen, 0,
         (UINT)bmpScreen.bmHeight,
         lpbitmap,
         (BITMAPINFO *)&bi, DIB_RGB_COLORS);
 
-    /* Allocate memory for the pixel data */
     pixels = (unsigned char *)malloc(width * height * 3);
     if (pixels == NULL) {
         fprintf(stderr, "Failed to allocate memory\n");
@@ -113,7 +101,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Save the image as PNG */
     if (!stbi_write_png(filename, width, height, 3, pixels, width * 3)) {
         fprintf(stderr, "Failed to write PNG to %s\n", filename);
     } else {
@@ -121,13 +108,11 @@ int main(int argc, char *argv[])
         printf("Image dimensions: %d x %d\n", width, height);
     }
 
-    /* Clean up */
     free(pixels);
     GlobalUnlock(hDIB);
     GlobalFree(hDIB);
     DeleteObject(hbmScreen);
     DeleteDC(hdcMemDC);
     DeleteDC(hdcScreen);
-
     return 0;
 }
